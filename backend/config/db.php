@@ -1,10 +1,4 @@
 <?php
-// ============================================
-// File:   db.php
-// Author: Juna Bhujel
-// Shared database connection
-// ============================================
-
 $host     = "localhost";
 $dbname   = "consistency_db";
 $username = "root";

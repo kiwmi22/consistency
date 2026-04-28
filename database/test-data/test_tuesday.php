@@ -16,5 +16,5 @@ while ($row = $result->fetch_assoc()) {
 // TEST 2 — getLongestStreak
 echo "<h3>TEST 2: Longest streak for User 1, Habit 1</h3>";
 $longest = $streak->getLongestStreak(1, 1);
-echo "Longest Streak: " . $longest;
+echo "Longest Streak: " . $longest ;
 ?>

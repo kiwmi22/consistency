@@ -27,7 +27,7 @@ echo "<h3>TEST 4: resetStreak(2,1)</h3>";
 $streak->resetStreak(2, 1);
 echo "Streak reset to zero";
 
-// TEST 5 — getAllStreaksAdmin
+// TEST 5 —  getAllStreaksAdmin
 echo "<h3>TEST 5: getAllStreaksAdmin()</h3>";
 $all = $streak->getAllStreaksAdmin();
 while ($row = $all->fetch_assoc()) {
