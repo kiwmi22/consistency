@@ -48,6 +48,48 @@ class Reminder {
         return false;
     }
 
+// Update an existing reminder using stored procedure
+public function update() {
+    $query = "CALL sp_UpdateReminder(:ReminderID, :UserID, :HabitID, :ReminderTime, :IsEnabled, :Message)";
+    $stmt = $this->conn->prepare($query);
+
+    // Sanitise inputs
+    $this->ReminderID = htmlspecialchars(strip_tags($this->ReminderID));
+    $this->UserID = htmlspecialchars(strip_tags($this->UserID));
+    $this->HabitID = htmlspecialchars(strip_tags($this->HabitID));
+    $this->ReminderTime = htmlspecialchars(strip_tags($this->ReminderTime));
+    $this->IsEnabled = htmlspecialchars(strip_tags($this->IsEnabled));
+    $this->Message = htmlspecialchars(strip_tags($this->Message));
+
+    // Bind parameters
+    $stmt->bindParam(":ReminderID", $this->ReminderID);
+    $stmt->bindParam(":UserID", $this->UserID);
+    $stmt->bindParam(":HabitID", $this->HabitID);
+    $stmt->bindParam(":ReminderTime", $this->ReminderTime);
+    $stmt->bindParam(":IsEnabled", $this->IsEnabled);
+    $stmt->bindParam(":Message", $this->Message);
+
+    // Execute and return result
+    if ($stmt->execute()) {
+        return true;
+    }
+    return false;
+}
+
+// Delete a reminder using stored procedure
+public function delete() {
+    $query = "CALL sp_DeleteReminder(:ReminderID)";
+    $stmt = $this->conn->prepare($query);
+
+    $this->ReminderID = htmlspecialchars(strip_tags($this->ReminderID));
+    $stmt->bindParam(":ReminderID", $this->ReminderID);
+
+    if ($stmt->execute()) {
+        return true;
+    }
+    return false;
+}
+
     // List all reminders using stored procedure
     public function listAll() {
         $query = "CALL sp_GetAllReminders()";

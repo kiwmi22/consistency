@@ -42,23 +42,32 @@ $stmt = $reminder->listAll();
             </tr>
         </thead>
         <tbody>
-            <?php
-            if ($stmt->rowCount() > 0) {
-                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    echo "<tr>";
-                    echo "<td>" . htmlspecialchars($row['ReminderID']) . "</td>";
-                    echo "<td>" . htmlspecialchars($row['UserID']) . "</td>";
-                    echo "<td>" . htmlspecialchars($row['HabitID']) . "</td>";
-                    echo "<td>" . htmlspecialchars($row['ReminderTime']) . "</td>";
-                    echo "<td>" . ($row['IsEnabled'] ? 'Yes' : 'No') . "</td>";
-                    echo "<td>" . htmlspecialchars($row['Message']) . "</td>";
-                    echo "<td>" . htmlspecialchars($row['CreatedDate']) . "</td>";
-                    echo "</tr>";
-                }
-            } else {
-                echo "<tr><td colspan='7'>No reminders found.</td></tr>";
-            }
-            ?>
+    <?php
+    // Display success message if redirected from delete
+    if (isset($_GET['deleted'])) {
+        echo "<tr><td colspan='7' style='background-color: lightgreen;'>Reminder deleted successfully.</td></tr>";
+    }
+    
+    if ($stmt->rowCount() > 0) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            echo "<tr>";
+            echo "<td>" . htmlspecialchars($row['ReminderID']) . "</td>";
+            echo "<td>" . htmlspecialchars($row['UserID']) . "</td>";
+            echo "<td>" . htmlspecialchars($row['HabitID']) . "</td>";
+            echo "<td>" . htmlspecialchars($row['ReminderTime']) . "</td>";
+            echo "<td>" . ($row['IsEnabled'] ? 'Yes' : 'No') . "</td>";
+            echo "<td>" . htmlspecialchars($row['Message']) . "</td>";
+            echo "<td>" . htmlspecialchars($row['CreatedDate']) . "</td>";
+            echo "<td>";
+            echo "<a href='edit_reminder.php?id=" . $row['ReminderID'] . "'>Edit</a> | ";
+            echo "<a href='delete_reminder.php?id=" . $row['ReminderID'] . "'>Delete</a>";
+            echo "</td>";
+            echo "</tr>";
+        }
+    } else {
+        echo "<tr><td colspan='8'>No reminders found.</td></tr>";
+    }
+    ?>
         </tbody>
     </table>
 </body>
