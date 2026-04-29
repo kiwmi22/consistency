@@ -1,7 +1,7 @@
 <?php
 // Habit.php
 // Developer: Sashi Khatri
-// Component: Habit Management
+// Component: Habit Management 
 
 class Habit {
 
