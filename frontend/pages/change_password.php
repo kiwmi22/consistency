@@ -15,7 +15,7 @@ if (!isset($_SESSION['userID'])) {
 }
 
 require_once __DIR__ . '/../../backend/config/db_connect.php';
-require_once __DIR__ . '/../../backend/classes/User.php';
+require_once __DIR__ . '/../../backend/class/User.php';
 
 $userObj   = new User($pdo);
 $userID    = (int)$_SESSION['userID'];
