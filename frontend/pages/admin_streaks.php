@@ -1,11 +1,4 @@
 <?php
-// ============================================
-// File:      admin_streaks.php
-// Author:    Juna Bhujel
-// Component: Progress & Statistics — Admin
-// Sprint 1 - Thursday 24th April 2026
-// ============================================
-
 session_start();
 require_once '../../backend/config/db.php';
 require_once '../../backend/classes/Streak.php';
@@ -19,7 +12,6 @@ if (!isset($_SESSION['IsAdmin']) || !$_SESSION['IsAdmin']) {
 $streak  = new Streak($conn);
 $streaks = $streak->getAllStreaksAdmin();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,6 +23,18 @@ $streaks = $streak->getAllStreaksAdmin();
 
 <h1>Admin — All Streak Records</h1>
 
+<!-- ✅ Navigation Links -->
+<nav>
+    <a href="streak/add_streak.php">➕ Add New Streak</a> |
+    <a href="streak/filter_streak.php">🔍 Filter Streaks</a> |
+    <a href="streak/find_streak.php">🔎 Find Streak by ID</a> |
+    <a href="progress.php">📊 My Progress</a> |
+    <a href="../../index.html">🏠 Main Menu</a>
+</nav>
+
+<br>
+
+<!-- ✅ All Streaks Table -->
 <table border="1">
     <thead>
         <tr>
@@ -55,16 +59,17 @@ $streaks = $streak->getAllStreaksAdmin();
             <td><?= $row['IsActive'] ? 'Active' : 'Inactive' ?></td>
             <td><?= $row['LastUpdated'] ?></td>
             <td>
-                <a href="reset_streak.php?id=<?= $row['StreakID'] ?>">Reset</a> |
-                <a href="edit_streak.php?id=<?= $row['StreakID'] ?>">Edit</a> |
-                <a href="delete_streak.php?id=<?= $row['StreakID'] ?>">Delete</a>
+                <!-- ✅ Points to streak/ subfolder -->
+                <a href="streak/edit_streak.php?id=<?= $row['StreakID'] ?>">Edit</a> |
+                <a href="streak/delete_streak.php?id=<?= $row['StreakID'] ?>">Delete</a>
             </td>
         </tr>
         <?php endwhile; ?>
     </tbody>
 </table>
 
-<a href="menu.php">Back to Menu</a>
+<br>
+<a href="../../index.html">Back to Main Menu</a>
 
 </body>
 </html>
