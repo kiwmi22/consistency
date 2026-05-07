@@ -120,5 +120,53 @@ public function delete() {
         }
         return false;
     }
+
+    // Filter reminders by habit using stored procedure
+public function filterByHabit() {
+    $query = "CALL sp_FilterRemindersByHabit(:HabitID)";
+    $stmt = $this->conn->prepare($query);
+
+    // Sanitise input
+    $this->HabitID = htmlspecialchars(strip_tags($this->HabitID));
+
+    // Bind parameter
+    $stmt->bindParam(":HabitID", $this->HabitID);
+
+    // Execute and return result
+    $stmt->execute();
+    return $stmt;
+}
+
+// Filter reminders by enabled status using stored procedure
+public function filterByStatus() {
+    $query = "CALL sp_FilterRemindersByStatus(:IsEnabled)";
+    $stmt = $this->conn->prepare($query);
+
+    // Sanitise input
+    $this->IsEnabled = htmlspecialchars(strip_tags($this->IsEnabled));
+
+    // Bind parameter
+    $stmt->bindParam(":IsEnabled", $this->IsEnabled);
+
+    // Execute and return result
+    $stmt->execute();
+    return $stmt;
+}
+
+// Filter reminders by user using stored procedure (admin function)
+public function filterByUser() {
+    $query = "CALL sp_FilterRemindersByUser(:UserID)";
+    $stmt = $this->conn->prepare($query);
+
+    // Sanitise input
+    $this->UserID = htmlspecialchars(strip_tags($this->UserID));
+
+    // Bind parameter
+    $stmt->bindParam(":UserID", $this->UserID);
+
+    // Execute and return result
+    $stmt->execute();
+    return $stmt;
+}
 }
 ?>

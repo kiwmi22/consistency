@@ -56,10 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body>
     <nav>
-        <a href="../index.html">Home</a>
-        <a href="add_reminder.php">Add Reminder</a>
-        <a href="list_reminders.php">List Reminders</a>
-    </nav>
+    <a href="../index.html">Home</a>
+    <a href="add_reminder.php">Add Reminder</a>
+    <a href="list_reminder.php">List Reminders</a>
+    <a href="find_reminder.php">Find Reminder</a>
+    <a href="filter_reminder.php">Filter Reminders</a>
+</nav>
+    
 
     <h1>Add New Reminder</h1>
 

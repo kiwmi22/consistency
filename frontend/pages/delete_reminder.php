@@ -40,11 +40,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['confirm'])) {
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <nav>
-        <a href="../../frontend/index.html">Home</a>
-        <a href="add_reminder.php">Add Reminder</a>
-        <a href="list_reminders.php">List Reminders</a>
-    </nav>
+   <nav>
+    <a href="../index.html">Home</a>
+    <a href="add_reminder.php">Add Reminder</a>
+    <a href="list_reminder.php">List Reminders</a>
+    <a href="find_reminder.php">Find Reminder</a>
+    <a href="filter_reminder.php">Filter Reminders</a>
+</nav>
 
     <h1>Delete Reminder</h1>
 
