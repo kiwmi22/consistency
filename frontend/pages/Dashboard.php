@@ -202,4 +202,8 @@ $isAdmin  = (bool)$_SESSION['isAdmin'];
 </div>
 
 </body>
+<<<<<<< HEAD
 </html>
+=======
+</html>
+>>>>>>> develop

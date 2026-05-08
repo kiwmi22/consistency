@@ -189,4 +189,8 @@ form.addEventListener('submit', (e) => {
 </script>
 
 </body>
+<<<<<<< HEAD
 </html>
+=======
+</html>
+>>>>>>> develop
