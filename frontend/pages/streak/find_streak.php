@@ -12,52 +12,62 @@ if (!isset($_SESSION['IsAdmin']) || !$_SESSION['IsAdmin']) {
     exit();
 }
 
-$streak   = new Streak($conn);
-$streakID = $_GET['id'] ?? 0;
-$record   = $streak->findStreakById($streakID)->fetch_assoc();
+$streak = new Streak($conn);
+$record = null;
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $streak->deleteStreak($streakID);
-    header("Location: ../admin_streaks.php");
-    exit();
+    $streakID = $_POST['StreakID'];
+    $result   = $streak->findStreakById($streakID);
+    $record   = $result->fetch_assoc();
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Delete Streak</title>
+    <title>Find Streak</title>
     <link rel="stylesheet" href="../../css/style.css">
 </head>
 <body>
-<h1>Delete Streak</h1>
+<h1>Find Streak by ID</h1>
 
-<p>Are you sure you want to delete this record?</p>
+<form method="POST">
+    <label>Streak ID:</label><br>
+    <input type="number" name="StreakID" required>
+    <br><br>
+    <button type="submit">Find</button>
+</form>
 
+<?php if ($record): ?>
+<br>
 <table border="1">
     <thead>
         <tr>
+            <th>ID</th>
             <th>Username</th>
             <th>Habit</th>
             <th>Current Streak</th>
             <th>Longest Streak</th>
+            <th>Status</th>
+            <th>Last Updated</th>
         </tr>
     </thead>
     <tbody>
         <tr>
+            <td><?= $record['StreakID'] ?></td>
             <td><?= htmlspecialchars($record['Username']) ?></td>
             <td><?= htmlspecialchars($record['HabitName']) ?></td>
             <td><?= $record['CurrentStreak'] ?></td>
             <td><?= $record['LongestStreak'] ?></td>
+            <td><?= $record['IsActive'] ? 'Active' : 'Inactive' ?></td>
+            <td><?= $record['LastUpdated'] ?></td>
         </tr>
     </tbody>
 </table>
+<?php elseif ($_SERVER['REQUEST_METHOD'] == 'POST'): ?>
+    <p style="color:red">No streak found with that ID</p>
+<?php endif; ?>
 <br>
-<form method="POST">
-    <button type="submit" style="color:red">
-        Yes Delete
-    </button>
-</form>
-<a href="../admin_streaks.php">Cancel — Back to Admin</a>
+<a href="../admin_streaks.php">Back to Admin</a>
 </body>
 </html>

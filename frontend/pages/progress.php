@@ -7,6 +7,10 @@
 // ============================================
 
 session_start();
+
+$_SESSION['UserID']  = 1;
+$_SESSION['IsAdmin'] = false;
+
 require_once '../../backend/config/db.php';
 require_once '../../backend/classes/Streak.php';
 

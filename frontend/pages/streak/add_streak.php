@@ -1,5 +1,9 @@
 <?php
 session_start();
+
+$_SESSION['UserID']  = 1;
+$_SESSION['IsAdmin'] = true;
+
 require_once '../../../backend/config/db.php';
 require_once '../../../backend/classes/Streak.php';
 
