@@ -1,6 +1,9 @@
 <?php
-// Find Reminder Page - Presentation layer
-// Allows users to search for a specific reminder by ID
+/**
+ * Find Reminder Page - Search for specific reminder by ID
+ * Displays all reminder details if found
+ * Author: Pratik Tamang
+ */
 
 require_once '../../backend/config/database.php';
 require_once '../../backend/classes/Reminder.php';
@@ -12,17 +15,20 @@ $reminder = new Reminder($db);
 $message = "";
 $reminderFound = false;
 
-// Process search
-if (isset($_GET['search']) && !empty($_GET['ReminderID'])) {
-    if (is_numeric($_GET['ReminderID'])) {
-        $reminder->ReminderID = $_GET['ReminderID'];
+// Process search when ID is provided
+if (isset($_GET['id'])) {
+    // Validate ID is numeric to prevent SQL injection
+    if (!is_numeric($_GET['id'])) {
+        $message = "<p style='color: red;'>Error: Please enter a valid numeric Reminder ID.</p>";
+    } else {
+        $reminder->ReminderID = $_GET['id'];
+        
+        // Call findById method which executes sp_GetReminderById
         if ($reminder->findById()) {
             $reminderFound = true;
         } else {
-            $message = "<p style='color: red;'>No reminder found with ID: " . htmlspecialchars($_GET['ReminderID']) . "</p>";
+            $message = "<p style='color: red;'>No reminder found with ID: " . htmlspecialchars($_GET['id']) . "</p>";
         }
-    } else {
-        $message = "<p style='color: red;'>Please enter a valid numeric Reminder ID.</p>";
     }
 }
 ?>
@@ -36,68 +42,63 @@ if (isset($_GET['search']) && !empty($_GET['ReminderID'])) {
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <nav>
-        <a href="../index.html">Home</a>
-        <a href="add_reminder.php">Add Reminder</a>
-        <a href="list_reminder.php">List Reminders</a>
-        <a href="find_reminder.php">Find Reminder</a>
-        <a href="filter_reminder.php">Filter Reminders</a>
-    </nav>
-
     <h1>Find Reminder</h1>
-
-    <!-- Search Form -->
+    
+    <!-- Search form uses GET method to keep ID in URL -->
     <form method="GET" action="">
-        <label for="ReminderID">Enter Reminder ID:</label><br>
-        <input type="number" id="ReminderID" name="ReminderID" min="1" required 
-               value="<?php echo isset($_GET['ReminderID']) ? htmlspecialchars($_GET['ReminderID']) : ''; ?>"><br><br>
-        <button type="submit" name="search">Search</button>
+        <label for="id">Enter Reminder ID:</label><br>
+        <input type="number" id="id" name="id" required min="1" 
+               value="<?php echo isset($_GET['id']) ? htmlspecialchars($_GET['id']) : ''; ?>" 
+               placeholder="e.g., 1"><br><br>
+        <button type="submit">Search</button>
     </form>
-
+    
+    <br>
+    
     <?php echo $message; ?>
-
-    <!-- Display Result -->
-    <?php if ($reminderFound): ?>
+    
+    <?php if ($reminderFound) { ?>
         <h2>Reminder Details</h2>
-        <table border="1" cellpadding="8" cellspacing="0">
+        <!-- Display reminder in vertical table format -->
+        <table border="1" cellpadding="10">
             <tr>
-                <th>Field</th>
-                <th>Value</th>
+                <th>Reminder ID</th>
+                <td><?php echo $reminder->ReminderID; ?></td>
             </tr>
             <tr>
-                <td>Reminder ID</td>
-                <td><?php echo htmlspecialchars($reminder->ReminderID); ?></td>
+                <th>User ID</th>
+                <td><?php echo $reminder->UserID; ?></td>
             </tr>
             <tr>
-                <td>User ID</td>
-                <td><?php echo htmlspecialchars($reminder->UserID); ?></td>
+                <th>Habit ID</th>
+                <td><?php echo $reminder->HabitID; ?></td>
             </tr>
             <tr>
-                <td>Habit ID</td>
-                <td><?php echo htmlspecialchars($reminder->HabitID); ?></td>
+                <th>Reminder Time</th>
+                <td><?php echo $reminder->ReminderTime; ?></td>
             </tr>
             <tr>
-                <td>Reminder Time</td>
-                <td><?php echo htmlspecialchars($reminder->ReminderTime); ?></td>
+                <th>Enabled</th>
+                <td><?php echo ($reminder->IsEnabled == 1) ? 'Yes' : 'No'; ?></td>
             </tr>
             <tr>
-                <td>Enabled</td>
-                <td><?php echo $reminder->IsEnabled ? 'Yes' : 'No'; ?></td>
-            </tr>
-            <tr>
-                <td>Message</td>
+                <th>Message</th>
                 <td><?php echo htmlspecialchars($reminder->Message); ?></td>
             </tr>
             <tr>
-                <td>Created Date</td>
-                <td><?php echo htmlspecialchars($reminder->CreatedDate); ?></td>
+                <th>Created Date</th>
+                <td><?php echo $reminder->CreatedDate; ?></td>
             </tr>
         </table>
-
-        <p>
-            <a href="edit_reminder.php?id=<?php echo $reminder->ReminderID; ?>">Edit this Reminder</a> | 
-            <a href="delete_reminder.php?id=<?php echo $reminder->ReminderID; ?>">Delete this Reminder</a>
-        </p>
-    <?php endif; ?>
+        
+        <br>
+        <!-- Quick action links for found reminder -->
+        <a href="edit_reminder.php?id=<?php echo $reminder->ReminderID; ?>">Edit this Reminder</a> | 
+        <a href="delete_reminder.php?id=<?php echo $reminder->ReminderID; ?>" style="color: red;">Delete this Reminder</a>
+    <?php } ?>
+    
+    <br><br>
+    <a href="list_reminders.php">View All Reminders</a> | 
+    <a href="../index.html">Back to Main Menu</a>
 </body>
 </html>

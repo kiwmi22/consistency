@@ -1,6 +1,9 @@
 <?php
-// Filter Reminders Page - Presentation layer
-// Allows users to filter reminders by habit, status, or user
+/**
+ * Filter Reminders Page - Filter reminders by habit, status, or user
+ * Uses dropdowns for user-friendly filtering
+ * Author: Pratik Tamang
+ */
 
 require_once '../../backend/config/database.php';
 require_once '../../backend/classes/Reminder.php';
@@ -9,41 +12,47 @@ $database = new Database();
 $db = $database->getConnection();
 $reminder = new Reminder($db);
 
-$stmt = null;
 $filterApplied = false;
-$filterType = "";
+$filterType = "All Reminders";
 
-// Process filter
-if (isset($_GET['filter'])) {
-    $filterApplied = true;
+// Fetch habits and users for dropdown filters
+$habitQuery = "SELECT HabitID, HabitName FROM tblHabits WHERE IsActive = 1 ORDER BY HabitName";
+$habitStmt = $db->query($habitQuery);
 
+$userQuery = "SELECT UserID, Username FROM tblUsers WHERE IsActive = 1 ORDER BY Username";
+$userStmt = $db->query($userQuery);
+
+// Determine which filter to apply based on GET parameters
+// Priority: HabitID > Status > UserID > All
+if (isset($_GET['HabitID']) && !empty($_GET['HabitID']) && is_numeric($_GET['HabitID'])) {
     // Filter by Habit
-    if (!empty($_GET['HabitID'])) {
-        $reminder->HabitID = $_GET['HabitID'];
-        $stmt = $reminder->filterByHabit();
-        $filterType = "Habit ID: " . htmlspecialchars($_GET['HabitID']);
+    $reminder->HabitID = $_GET['HabitID'];
+    $stmt = $reminder->filterByHabit();
+    $filterApplied = true;
+    $filterType = "Habit ID: " . $_GET['HabitID'];
+    
+} elseif (isset($_GET['Status']) && !empty($_GET['Status'])) {
+    // Filter by enabled/disabled status
+    $status = $_GET['Status'];
+    if ($status == 'enabled') {
+        $reminder->IsEnabled = 1;
+    } elseif ($status == 'disabled') {
+        $reminder->IsEnabled = 0;
     }
-    // Filter by Status
-    elseif (isset($_GET['Status']) && $_GET['Status'] !== 'all') {
-        $reminder->IsEnabled = ($_GET['Status'] === 'enabled') ? 1 : 0;
-        $stmt = $reminder->filterByStatus();
-        $filterType = ($_GET['Status'] === 'enabled') ? "Enabled Reminders" : "Disabled Reminders";
-    }
-    // Filter by User
-    elseif (!empty($_GET['UserID'])) {
-        $reminder->UserID = $_GET['UserID'];
-        $stmt = $reminder->filterByUser();
-        $filterType = "User ID: " . htmlspecialchars($_GET['UserID']);
-    }
-    // Show all if no filter selected
-    else {
-        $stmt = $reminder->listAll();
-        $filterType = "All Reminders";
-    }
+    $stmt = $reminder->filterByStatus();
+    $filterApplied = true;
+    $filterType = "Status: " . ucfirst($status);
+    
+} elseif (isset($_GET['UserID']) && !empty($_GET['UserID']) && is_numeric($_GET['UserID'])) {
+    // Filter by User (typically for admin use)
+    $reminder->UserID = $_GET['UserID'];
+    $stmt = $reminder->filterByUser();
+    $filterApplied = true;
+    $filterType = "User ID: " . $_GET['UserID'];
+    
 } else {
-    // Default: show all
+    // No filter applied - show all reminders
     $stmt = $reminder->listAll();
-    $filterType = "All Reminders";
     $filterApplied = true;
 }
 ?>
@@ -57,47 +66,57 @@ if (isset($_GET['filter'])) {
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <nav>
-        <a href="../index.html">Home</a>
-        <a href="add_reminder.php">Add Reminder</a>
-        <a href="list_reminder.php">List Reminders</a>
-        <a href="find_reminder.php">Find Reminder</a>
-        <a href="filter_reminder.php">Filter Reminders</a>
-    </nav>
-
     <h1>Filter Reminders</h1>
-
-    <!-- Filter Form -->
-    <form method="GET" action="" style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-        <h3>Select Filter:</h3>
-
-        <label for="HabitID">Filter by Habit ID:</label>
-        <input type="number" id="HabitID" name="HabitID" min="1" 
-               value="<?php echo isset($_GET['HabitID']) ? htmlspecialchars($_GET['HabitID']) : ''; ?>">
-        <br><br>
-
-        <label for="Status">Filter by Status:</label>
-        <select id="Status" name="Status">
-            <option value="all" <?php echo (!isset($_GET['Status']) || $_GET['Status'] === 'all') ? 'selected' : ''; ?>>All</option>
-            <option value="enabled" <?php echo (isset($_GET['Status']) && $_GET['Status'] === 'enabled') ? 'selected' : ''; ?>>Enabled Only</option>
-            <option value="disabled" <?php echo (isset($_GET['Status']) && $_GET['Status'] === 'disabled') ? 'selected' : ''; ?>>Disabled Only</option>
-        </select>
-        <br><br>
-
-        <label for="UserID">Filter by User ID (Admin):</label>
-        <input type="number" id="UserID" name="UserID" min="1"
-               value="<?php echo isset($_GET['UserID']) ? htmlspecialchars($_GET['UserID']) : ''; ?>">
-        <br><br>
-
-        <button type="submit" name="filter">Apply Filter</button>
-        <a href="filter_reminders.php" style="margin-left: 10px;">Reset Filters</a>
+    
+    <!-- Filter form with multiple dropdown options -->
+    <form method="GET" action="">
+        <fieldset>
+            <legend>Select Filter Options</legend>
+            
+            <!-- Habit dropdown filter -->
+            <label for="HabitID">Filter by Habit:</label><br>
+            <select id="HabitID" name="HabitID">
+                <option value="">-- All Habits --</option>
+                <?php while ($habit = $habitStmt->fetch(PDO::FETCH_ASSOC)) { ?>
+                    <option value="<?php echo $habit['HabitID']; ?>"
+                            <?php echo (isset($_GET['HabitID']) && $_GET['HabitID'] == $habit['HabitID']) ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($habit['HabitName']); ?>
+                    </option>
+                <?php } ?>
+            </select><br><br>
+            
+            <!-- Status dropdown filter -->
+            <label for="Status">Filter by Status:</label><br>
+            <select id="Status" name="Status">
+                <option value="">-- All Status --</option>
+                <option value="enabled" <?php echo (isset($_GET['Status']) && $_GET['Status'] == 'enabled') ? 'selected' : ''; ?>>Enabled</option>
+                <option value="disabled" <?php echo (isset($_GET['Status']) && $_GET['Status'] == 'disabled') ? 'selected' : ''; ?>>Disabled</option>
+            </select><br><br>
+            
+            <!-- User dropdown filter (for admin use) -->
+            <label for="UserID">Filter by User (Admin only):</label><br>
+            <select id="UserID" name="UserID">
+                <option value="">-- All Users --</option>
+                <?php while ($user = $userStmt->fetch(PDO::FETCH_ASSOC)) { ?>
+                    <option value="<?php echo $user['UserID']; ?>"
+                            <?php echo (isset($_GET['UserID']) && $_GET['UserID'] == $user['UserID']) ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($user['Username']); ?>
+                    </option>
+                <?php } ?>
+            </select><br><br>
+            
+            <button type="submit">Apply Filter</button>
+            <a href="filter_reminders.php">Reset Filters</a>
+        </fieldset>
     </form>
-
-    <!-- Display Results -->
-    <?php if ($filterApplied): ?>
+    
+    <br>
+    
+    <?php if ($filterApplied) { ?>
         <h2>Results: <?php echo $filterType; ?></h2>
-
-        <table border="1" cellpadding="8" cellspacing="0">
+        
+        <!-- Display filtered results in table format -->
+        <table border="1" cellpadding="10" cellspacing="0">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -112,28 +131,36 @@ if (isset($_GET['filter'])) {
             </thead>
             <tbody>
                 <?php
-                if ($stmt->rowCount() > 0) {
-                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        echo "<tr>";
-                        echo "<td>" . htmlspecialchars($row['ReminderID']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['UserID']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['HabitID']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['ReminderTime']) . "</td>";
-                        echo "<td>" . ($row['IsEnabled'] ? 'Yes' : 'No') . "</td>";
-                        echo "<td>" . htmlspecialchars($row['Message']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['CreatedDate']) . "</td>";
-                        echo "<td>";
-                        echo "<a href='edit_reminder.php?id=" . $row['ReminderID'] . "'>Edit</a> | ";
-                        echo "<a href='delete_reminder.php?id=" . $row['ReminderID'] . "'>Delete</a>";
-                        echo "</td>";
-                        echo "</tr>";
-                    }
-                } else {
-                    echo "<tr><td colspan='8'>No reminders found matching the selected filter.</td></tr>";
+                $count = 0;
+                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    $count++;
+                    echo "<tr>";
+                    echo "<td>" . $row['ReminderID'] . "</td>";
+                    echo "<td>" . $row['UserID'] . "</td>";
+                    echo "<td>" . $row['HabitID'] . "</td>";
+                    echo "<td>" . $row['ReminderTime'] . "</td>";
+                    echo "<td>" . (($row['IsEnabled'] == 1) ? 'Yes' : 'No') . "</td>";
+                    echo "<td>" . htmlspecialchars($row['Message']) . "</td>";
+                    echo "<td>" . $row['CreatedDate'] . "</td>";
+                    echo "<td>";
+                    echo "<a href='edit_reminder.php?id=" . $row['ReminderID'] . "'>Edit</a> | ";
+                    echo "<a href='delete_reminder.php?id=" . $row['ReminderID'] . "' style='color: red;'>Delete</a>";
+                    echo "</td>";
+                    echo "</tr>";
+                }
+                
+                if ($count == 0) {
+                    echo "<tr><td colspan='8' style='text-align: center;'>No reminders found matching the selected filter.</td></tr>";
                 }
                 ?>
             </tbody>
         </table>
-    <?php endif; ?>
+        
+        <p>Total Results: <?php echo $count; ?></p>
+    <?php } ?>
+    
+    <br>
+    <a href="list_reminders.php">View All Reminders</a> | 
+    <a href="../index.html">Back to Main Menu</a>
 </body>
 </html>

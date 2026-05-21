@@ -1,12 +1,15 @@
 <?php
-// Reminder class - Middle layer for Reminders & Notifications component
-// Handles all business logic for reminders
+/**
+ * Reminder Class - Business Logic Layer
+ * Handles all reminder operations using stored procedures
+ * Author: Pratik Tamang - Reminders & Notifications Component
+ */
 
 class Reminder {
+    // Database connection
     private $conn;
-    private $table = "tblReminders";
-
-    // Reminder properties
+    
+    // Reminder properties matching tblReminders columns
     public $ReminderID;
     public $UserID;
     public $HabitID;
@@ -14,102 +17,62 @@ class Reminder {
     public $IsEnabled;
     public $Message;
     public $CreatedDate;
-
-    // Constructor - receives database connection
+    
+    // Constructor receives database connection
     public function __construct($db) {
         $this->conn = $db;
     }
-
-    // Add a new reminder using stored procedure
+    
+    /**
+     * Add new reminder to database
+     * Calls sp_AddReminder stored procedure
+     * @return boolean - true if successful, false otherwise
+     */
     public function add() {
-        $query = "CALL sp_AddReminder(:UserID, :HabitID, :ReminderTime, :IsEnabled, :Message, :CreatedDate)";
+        $query = "CALL sp_AddReminder(:UserID, :HabitID, :ReminderTime, :IsEnabled, :Message)";
         $stmt = $this->conn->prepare($query);
-
-        // Sanitise inputs
-        $this->UserID = htmlspecialchars(strip_tags($this->UserID));
-        $this->HabitID = htmlspecialchars(strip_tags($this->HabitID));
-        $this->ReminderTime = htmlspecialchars(strip_tags($this->ReminderTime));
-        $this->IsEnabled = htmlspecialchars(strip_tags($this->IsEnabled));
-        $this->Message = htmlspecialchars(strip_tags($this->Message));
-        $this->CreatedDate = htmlspecialchars(strip_tags($this->CreatedDate));
-
-        // Bind parameters
-        $stmt->bindParam(":UserID", $this->UserID);
-        $stmt->bindParam(":HabitID", $this->HabitID);
-        $stmt->bindParam(":ReminderTime", $this->ReminderTime);
-        $stmt->bindParam(":IsEnabled", $this->IsEnabled);
-        $stmt->bindParam(":Message", $this->Message);
-        $stmt->bindParam(":CreatedDate", $this->CreatedDate);
-
-        // Execute and return result
+        
+        // Bind parameters to prevent SQL injection
+        $stmt->bindParam(':UserID', $this->UserID);
+        $stmt->bindParam(':HabitID', $this->HabitID);
+        $stmt->bindParam(':ReminderTime', $this->ReminderTime);
+        $stmt->bindParam(':IsEnabled', $this->IsEnabled);
+        $stmt->bindParam(':Message', $this->Message);
+        
         if ($stmt->execute()) {
             return true;
         }
         return false;
     }
-
-// Update an existing reminder using stored procedure
-public function update() {
-    $query = "CALL sp_UpdateReminder(:ReminderID, :UserID, :HabitID, :ReminderTime, :IsEnabled, :Message)";
-    $stmt = $this->conn->prepare($query);
-
-    // Sanitise inputs
-    $this->ReminderID = htmlspecialchars(strip_tags($this->ReminderID));
-    $this->UserID = htmlspecialchars(strip_tags($this->UserID));
-    $this->HabitID = htmlspecialchars(strip_tags($this->HabitID));
-    $this->ReminderTime = htmlspecialchars(strip_tags($this->ReminderTime));
-    $this->IsEnabled = htmlspecialchars(strip_tags($this->IsEnabled));
-    $this->Message = htmlspecialchars(strip_tags($this->Message));
-
-    // Bind parameters
-    $stmt->bindParam(":ReminderID", $this->ReminderID);
-    $stmt->bindParam(":UserID", $this->UserID);
-    $stmt->bindParam(":HabitID", $this->HabitID);
-    $stmt->bindParam(":ReminderTime", $this->ReminderTime);
-    $stmt->bindParam(":IsEnabled", $this->IsEnabled);
-    $stmt->bindParam(":Message", $this->Message);
-
-    // Execute and return result
-    if ($stmt->execute()) {
-        return true;
-    }
-    return false;
-}
-
-// Delete a reminder using stored procedure
-public function delete() {
-    $query = "CALL sp_DeleteReminder(:ReminderID)";
-    $stmt = $this->conn->prepare($query);
-
-    $this->ReminderID = htmlspecialchars(strip_tags($this->ReminderID));
-    $stmt->bindParam(":ReminderID", $this->ReminderID);
-
-    if ($stmt->execute()) {
-        return true;
-    }
-    return false;
-}
-
-    // List all reminders using stored procedure
+    
+    /**
+     * Get all reminders from database
+     * Calls sp_GetAllReminders stored procedure
+     * @return PDOStatement - result set of all reminders
+     */
     public function listAll() {
         $query = "CALL sp_GetAllReminders()";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;
     }
-
-    // Find a reminder by ID using stored procedure
+    
+    /**
+     * Find specific reminder by ID
+     * Calls sp_GetReminderById stored procedure
+     * Populates object properties if found
+     * @return boolean - true if found, false otherwise
+     */
     public function findById() {
         $query = "CALL sp_GetReminderById(:ReminderID)";
         $stmt = $this->conn->prepare($query);
-
-        $this->ReminderID = htmlspecialchars(strip_tags($this->ReminderID));
-        $stmt->bindParam(":ReminderID", $this->ReminderID);
-
+        $stmt->bindParam(':ReminderID', $this->ReminderID);
         $stmt->execute();
+        
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
+        
         if ($row) {
+            // Populate object properties from database row
             $this->UserID = $row['UserID'];
             $this->HabitID = $row['HabitID'];
             $this->ReminderTime = $row['ReminderTime'];
@@ -120,53 +83,83 @@ public function delete() {
         }
         return false;
     }
-
-    // Filter reminders by habit using stored procedure
-public function filterByHabit() {
-    $query = "CALL sp_FilterRemindersByHabit(:HabitID)";
-    $stmt = $this->conn->prepare($query);
-
-    // Sanitise input
-    $this->HabitID = htmlspecialchars(strip_tags($this->HabitID));
-
-    // Bind parameter
-    $stmt->bindParam(":HabitID", $this->HabitID);
-
-    // Execute and return result
-    $stmt->execute();
-    return $stmt;
-}
-
-// Filter reminders by enabled status using stored procedure
-public function filterByStatus() {
-    $query = "CALL sp_FilterRemindersByStatus(:IsEnabled)";
-    $stmt = $this->conn->prepare($query);
-
-    // Sanitise input
-    $this->IsEnabled = htmlspecialchars(strip_tags($this->IsEnabled));
-
-    // Bind parameter
-    $stmt->bindParam(":IsEnabled", $this->IsEnabled);
-
-    // Execute and return result
-    $stmt->execute();
-    return $stmt;
-}
-
-// Filter reminders by user using stored procedure (admin function)
-public function filterByUser() {
-    $query = "CALL sp_FilterRemindersByUser(:UserID)";
-    $stmt = $this->conn->prepare($query);
-
-    // Sanitise input
-    $this->UserID = htmlspecialchars(strip_tags($this->UserID));
-
-    // Bind parameter
-    $stmt->bindParam(":UserID", $this->UserID);
-
-    // Execute and return result
-    $stmt->execute();
-    return $stmt;
-}
+    
+    /**
+     * Update existing reminder
+     * Calls sp_UpdateReminder stored procedure
+     * @return boolean - true if successful, false otherwise
+     */
+    public function update() {
+        $query = "CALL sp_UpdateReminder(:ReminderID, :UserID, :HabitID, :ReminderTime, :IsEnabled, :Message)";
+        $stmt = $this->conn->prepare($query);
+        
+        $stmt->bindParam(':ReminderID', $this->ReminderID);
+        $stmt->bindParam(':UserID', $this->UserID);
+        $stmt->bindParam(':HabitID', $this->HabitID);
+        $stmt->bindParam(':ReminderTime', $this->ReminderTime);
+        $stmt->bindParam(':IsEnabled', $this->IsEnabled);
+        $stmt->bindParam(':Message', $this->Message);
+        
+        if ($stmt->execute()) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Delete reminder from database
+     * Calls sp_DeleteReminder stored procedure
+     * @return boolean - true if successful, false otherwise
+     */
+    public function delete() {
+        $query = "CALL sp_DeleteReminder(:ReminderID)";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':ReminderID', $this->ReminderID);
+        
+        if ($stmt->execute()) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Filter reminders by habit
+     * Calls sp_FilterRemindersByHabit stored procedure
+     * @return PDOStatement - filtered result set
+     */
+    public function filterByHabit() {
+        $query = "CALL sp_FilterRemindersByHabit(:HabitID)";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':HabitID', $this->HabitID);
+        $stmt->execute();
+        return $stmt;
+    }
+    
+    /**
+     * Filter reminders by enabled/disabled status
+     * Calls sp_FilterRemindersByStatus stored procedure
+     * @return PDOStatement - filtered result set
+     */
+    public function filterByStatus() {
+        $query = "CALL sp_FilterRemindersByStatus(:IsEnabled)";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':IsEnabled', $this->IsEnabled);
+        $stmt->execute();
+        return $stmt;
+    }
+    
+    /**
+     * Filter reminders by user
+     * Calls sp_FilterRemindersByUser stored procedure
+     * Useful for admin viewing specific user's reminders
+     * @return PDOStatement - filtered result set
+     */
+    public function filterByUser() {
+        $query = "CALL sp_FilterRemindersByUser(:UserID)";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':UserID', $this->UserID);
+        $stmt->execute();
+        return $stmt;
+    }
 }
 ?>

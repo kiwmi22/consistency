@@ -1,42 +1,45 @@
 <?php
-// Add Reminder Page - Presentation layer
-// Allows users to create a new reminder
+/**
+ * Add Reminder Page - Allows users to create new reminders
+ * Uses dropdowns for User and Habit selection instead of manual ID entry
+ * Author: Pratik Tamang - Reminders & Notifications Component
+ */
 
 require_once '../../backend/config/database.php';
 require_once '../../backend/classes/Reminder.php';
 
+// Initialize database connection and Reminder object
 $database = new Database();
 $db = $database->getConnection();
 $reminder = new Reminder($db);
-
 $message = "";
 
+// Process form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Sanitize inputs to prevent XSS attacks
+    $reminder->UserID = htmlspecialchars(strip_tags($_POST['UserID']));
+    $reminder->HabitID = htmlspecialchars(strip_tags($_POST['HabitID']));
+    $reminder->ReminderTime = htmlspecialchars(strip_tags($_POST['ReminderTime']));
+    $reminder->IsEnabled = isset($_POST['IsEnabled']) ? 1 : 0;
+    $reminder->Message = htmlspecialchars(strip_tags($_POST['Message']));
+    
+    // Validate inputs
     $errors = [];
-
-    if (empty($_POST['UserID']) || !is_numeric($_POST['UserID'])) {
+    if (!is_numeric($reminder->UserID)) {
         $errors[] = "User ID must be a valid number.";
     }
-    if (empty($_POST['HabitID']) || !is_numeric($_POST['HabitID'])) {
+    if (!is_numeric($reminder->HabitID)) {
         $errors[] = "Habit ID must be a valid number.";
     }
-    if (empty($_POST['ReminderTime']) || !preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $_POST['ReminderTime'])) {
-        $errors[] = "Reminder time must be in HH:MM 24-hour format.";
-    }
-    if (strlen($_POST['Message']) > 255) {
+    if (strlen($reminder->Message) > 255) {
         $errors[] = "Message must be 255 characters or less.";
     }
-
+    
+    // Add reminder if validation passes
     if (empty($errors)) {
-        $reminder->UserID = $_POST['UserID'];
-        $reminder->HabitID = $_POST['HabitID'];
-        $reminder->ReminderTime = $_POST['ReminderTime'];
-        $reminder->IsEnabled = isset($_POST['IsEnabled']) ? 1 : 0;
-        $reminder->Message = $_POST['Message'];
-        $reminder->CreatedDate = date('Y-m-d');
-
         if ($reminder->add()) {
-            $message = "<p style='color: green;'>Reminder added successfully!</p>";
+            $message = "<p style='color: green;'>✓ Reminder added successfully!</p>";
+            $_POST = array(); // Clear form
         } else {
             $message = "<p style='color: red;'>Error: Unable to add reminder.</p>";
         }
@@ -44,6 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $message = "<p style='color: red;'>" . implode("<br>", $errors) . "</p>";
     }
 }
+
+// Fetch active users and habits for dropdowns
+$userQuery = "SELECT UserID, Username FROM tblUsers WHERE IsActive = 1 ORDER BY Username";
+$userStmt = $db->query($userQuery);
+
+$habitQuery = "SELECT HabitID, HabitName FROM tblHabits WHERE IsActive = 1 ORDER BY HabitName";
+$habitStmt = $db->query($habitQuery);
 ?>
 
 <!DOCTYPE html>
@@ -55,36 +65,55 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <nav>
-    <a href="../index.html">Home</a>
-    <a href="add_reminder.php">Add Reminder</a>
-    <a href="list_reminder.php">List Reminders</a>
-    <a href="find_reminder.php">Find Reminder</a>
-    <a href="filter_reminder.php">Filter Reminders</a>
-</nav>
+    <h1>Add Reminder</h1>
     
-
-    <h1>Add New Reminder</h1>
-
     <?php echo $message; ?>
-
+    
     <form method="POST" action="">
-        <label for="UserID">User ID:</label><br>
-        <input type="number" id="UserID" name="UserID" required min="1"><br><br>
-
-        <label for="HabitID">Habit ID:</label><br>
-        <input type="number" id="HabitID" name="HabitID" required min="1"><br><br>
-
-        <label for="ReminderTime">Reminder Time (HH:MM):</label><br>
-        <input type="text" id="ReminderTime" name="ReminderTime" required placeholder="e.g. 07:30" maxlength="5"><br><br>
-
+        <!-- User dropdown - populated from tblUsers -->
+        <label for="UserID">Select User: *</label><br>
+        <select id="UserID" name="UserID" required>
+            <option value="">-- Select User --</option>
+            <?php while ($user = $userStmt->fetch(PDO::FETCH_ASSOC)) { ?>
+                <option value="<?php echo $user['UserID']; ?>" 
+                        <?php echo (isset($_POST['UserID']) && $_POST['UserID'] == $user['UserID']) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($user['Username']); ?>
+                </option>
+            <?php } ?>
+        </select><br><br>
+        
+        <!-- Habit dropdown - populated from tblHabits -->
+        <label for="HabitID">Select Habit: *</label><br>
+        <select id="HabitID" name="HabitID" required>
+            <option value="">-- Select Habit --</option>
+            <?php while ($habit = $habitStmt->fetch(PDO::FETCH_ASSOC)) { ?>
+                <option value="<?php echo $habit['HabitID']; ?>"
+                        <?php echo (isset($_POST['HabitID']) && $_POST['HabitID'] == $habit['HabitID']) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($habit['HabitName']); ?>
+                </option>
+            <?php } ?>
+        </select><br><br>
+        
+        <!-- HTML5 time picker for easy time selection -->
+        <label for="ReminderTime">Reminder Time (HH:MM): *</label><br>
+        <input type="time" id="ReminderTime" name="ReminderTime" required 
+               value="<?php echo isset($_POST['ReminderTime']) ? $_POST['ReminderTime'] : ''; ?>"><br><br>
+        
+        <!-- Checkbox defaults to checked for better UX -->
         <label for="IsEnabled">Enabled:</label>
-        <input type="checkbox" id="IsEnabled" name="IsEnabled" checked><br><br>
-
-        <label for="Message">Message (optional):</label><br>
-        <textarea id="Message" name="Message" rows="3" cols="40" maxlength="255" placeholder="e.g. Time for your morning run!"></textarea><br><br>
-
+        <input type="checkbox" id="IsEnabled" name="IsEnabled" 
+               <?php echo (!isset($_POST['UserID']) || (isset($_POST['IsEnabled']))) ? 'checked' : ''; ?>><br><br>
+        
+        <!-- Optional message field with maxlength for client-side validation -->
+        <label for="Message">Message (optional, max 255 characters):</label><br>
+        <textarea id="Message" name="Message" rows="3" cols="40" maxlength="255" 
+                  placeholder="e.g., Time for your morning run!"><?php echo isset($_POST['Message']) ? htmlspecialchars($_POST['Message']) : ''; ?></textarea><br><br>
+        
         <button type="submit">Add Reminder</button>
+        <a href="list_reminders.php">Cancel</a>
     </form>
+    
+    <br>
+    <a href="../index.html">Back to Main Menu</a>
 </body>
 </html>
