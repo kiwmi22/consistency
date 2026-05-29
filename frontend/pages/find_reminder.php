@@ -1,7 +1,7 @@
 <?php
 /**
- * Find Reminder Page - Search for specific reminder by ID
- * Displays all reminder details if found
+ * Find Reminder Page - Search reminders by Habit Name
+ * Users select a habit by name instead of remembering IDs
  * Author: Pratik Tamang
  */
 
@@ -13,23 +13,28 @@ $db = $database->getConnection();
 $reminder = new Reminder($db);
 
 $message = "";
-$reminderFound = false;
+$searchPerformed = false;
+$selectedHabitName = "";
 
-// Process search when ID is provided
-if (isset($_GET['id'])) {
-    // Validate ID is numeric to prevent SQL injection
-    if (!is_numeric($_GET['id'])) {
-        $message = "<p style='color: red;'>Error: Please enter a valid numeric Reminder ID.</p>";
-    } else {
-        $reminder->ReminderID = $_GET['id'];
-        
-        // Call findById method which executes sp_GetReminderById
-        if ($reminder->findById()) {
-            $reminderFound = true;
-        } else {
-            $message = "<p style='color: red;'>No reminder found with ID: " . htmlspecialchars($_GET['id']) . "</p>";
-        }
-    }
+// Fetch active habits for the dropdown
+$habitQuery = "SELECT HabitID, HabitName FROM tblHabits WHERE IsActive = 1 ORDER BY HabitName";
+$habitStmt = $db->query($habitQuery);
+
+// Process search when a habit is selected
+if (isset($_GET['HabitID']) && !empty($_GET['HabitID']) && is_numeric($_GET['HabitID'])) {
+    $reminder->HabitID = $_GET['HabitID'];
+    
+    // Get the habit name for display
+    $nameQuery = "SELECT HabitName FROM tblHabits WHERE HabitID = :HabitID";
+    $nameStmt = $db->prepare($nameQuery);
+    $nameStmt->bindParam(':HabitID', $reminder->HabitID);
+    $nameStmt->execute();
+    $habitRow = $nameStmt->fetch(PDO::FETCH_ASSOC);
+    $selectedHabitName = $habitRow ? $habitRow['HabitName'] : "Unknown";
+    
+    // Search reminders for this habit using existing filterByHabit method
+    $resultStmt = $reminder->filterByHabit();
+    $searchPerformed = true;
 }
 ?>
 
@@ -42,14 +47,20 @@ if (isset($_GET['id'])) {
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <h1>Find Reminder</h1>
+    <h1>Find Reminder by Habit</h1>
     
-    <!-- Search form uses GET method to keep ID in URL -->
+    <!-- Search form with habit dropdown -->
     <form method="GET" action="">
-        <label for="id">Enter Reminder ID:</label><br>
-        <input type="number" id="id" name="id" required min="1" 
-               value="<?php echo isset($_GET['id']) ? htmlspecialchars($_GET['id']) : ''; ?>" 
-               placeholder="e.g., 1"><br><br>
+        <label for="HabitID">Select Habit to Search:</label><br>
+        <select id="HabitID" name="HabitID" required>
+            <option value="">-- Select a Habit --</option>
+            <?php while ($habit = $habitStmt->fetch(PDO::FETCH_ASSOC)) { ?>
+                <option value="<?php echo $habit['HabitID']; ?>"
+                        <?php echo (isset($_GET['HabitID']) && $_GET['HabitID'] == $habit['HabitID']) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($habit['HabitName']); ?>
+                </option>
+            <?php } ?>
+        </select><br><br>
         <button type="submit">Search</button>
     </form>
     
@@ -57,47 +68,53 @@ if (isset($_GET['id'])) {
     
     <?php echo $message; ?>
     
-    <?php if ($reminderFound) { ?>
-        <h2>Reminder Details</h2>
-        <!-- Display reminder in vertical table format -->
-        <table border="1" cellpadding="10">
-            <tr>
-                <th>Reminder ID</th>
-                <td><?php echo $reminder->ReminderID; ?></td>
-            </tr>
-            <tr>
-                <th>User ID</th>
-                <td><?php echo $reminder->UserID; ?></td>
-            </tr>
-            <tr>
-                <th>Habit ID</th>
-                <td><?php echo $reminder->HabitID; ?></td>
-            </tr>
-            <tr>
-                <th>Reminder Time</th>
-                <td><?php echo $reminder->ReminderTime; ?></td>
-            </tr>
-            <tr>
-                <th>Enabled</th>
-                <td><?php echo ($reminder->IsEnabled == 1) ? 'Yes' : 'No'; ?></td>
-            </tr>
-            <tr>
-                <th>Message</th>
-                <td><?php echo htmlspecialchars($reminder->Message); ?></td>
-            </tr>
-            <tr>
-                <th>Created Date</th>
-                <td><?php echo $reminder->CreatedDate; ?></td>
-            </tr>
+    <?php if ($searchPerformed) { ?>
+        <h2>Reminders for: <?php echo htmlspecialchars($selectedHabitName); ?></h2>
+        
+        <table border="1" cellpadding="10" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>User ID</th>
+                    <th>Habit ID</th>
+                    <th>Time</th>
+                    <th>Enabled</th>
+                    <th>Message</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                $count = 0;
+                while ($row = $resultStmt->fetch(PDO::FETCH_ASSOC)) {
+                    $count++;
+                    echo "<tr>";
+                    echo "<td>" . $row['ReminderID'] . "</td>";
+                    echo "<td>" . $row['UserID'] . "</td>";
+                    echo "<td>" . $row['HabitID'] . "</td>";
+                    echo "<td>" . $row['ReminderTime'] . "</td>";
+                    echo "<td>" . (($row['IsEnabled'] == 1) ? 'Yes' : 'No') . "</td>";
+                    echo "<td>" . htmlspecialchars($row['Message']) . "</td>";
+                    echo "<td>" . $row['CreatedDate'] . "</td>";
+                    echo "<td>";
+                    echo "<a href='edit_reminder.php?id=" . $row['ReminderID'] . "'>Edit</a> | ";
+                    echo "<a href='delete_reminder.php?id=" . $row['ReminderID'] . "' style='color: red;'>Delete</a>";
+                    echo "</td>";
+                    echo "</tr>";
+                }
+                
+                if ($count == 0) {
+                    echo "<tr><td colspan='8' style='text-align: center;'>No reminders found for this habit.</td></tr>";
+                }
+                ?>
+            </tbody>
         </table>
         
-        <br>
-        <!-- Quick action links for found reminder -->
-        <a href="edit_reminder.php?id=<?php echo $reminder->ReminderID; ?>">Edit this Reminder</a> | 
-        <a href="delete_reminder.php?id=<?php echo $reminder->ReminderID; ?>" style="color: red;">Delete this Reminder</a>
+        <p>Total Reminders Found: <?php echo $count; ?></p>
     <?php } ?>
     
-    <br><br>
+    <br>
     <a href="list_reminders.php">View All Reminders</a> | 
     <a href="../index.html">Back to Main Menu</a>
 </body>
