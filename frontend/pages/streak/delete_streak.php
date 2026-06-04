@@ -1,9 +1,5 @@
 <?php
 session_start();
-
-//temporary - remove when krishna 
-$_SESSION['UserID'] = 1;
-
 require_once '../../../backend/config/db.php';
 require_once '../../../backend/classes/Streak.php';
 

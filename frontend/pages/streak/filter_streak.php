@@ -3,7 +3,7 @@
 // File:      filter_streak.php
 // Author:    Juna Bhujel
 // Component: Progress & Statistics
-// Sprint 3 — Filter Streaks
+// Stories:   2, 3, 4 — Filter Streaks
 // ============================================
 
 // Start session
@@ -27,8 +27,6 @@ if (!isset($_SESSION['IsAdmin']) || !$_SESSION['IsAdmin']) {
 
 // Create Streak object
 $streak  = new Streak($conn);
-
-// Set empty variables
 $results = null;
 $error   = "";
 $filter  = "";
@@ -37,18 +35,19 @@ $count   = 0;
 // Check if form submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
-    // Get which filter was selected
+    // Get which filter type was selected
     $filter = $_POST['filter_type'] ?? '';
 
     // -----------------------------------------------
-    // FILTER BY HABIT
+    // FILTER BY HABIT — Story 2
     // -----------------------------------------------
     if ($filter == 'habit') {
 
         // Validate HabitID
-        if (empty($_POST['HabitID']) ||
-            !is_numeric($_POST['HabitID'])) {
-            $error = "Please enter a valid Habit ID";
+        if (empty($_POST['HabitID'])) {
+            $error = "Please enter a Habit ID";
+        } elseif (!is_numeric($_POST['HabitID'])) {
+            $error = "Habit ID must be a number";
         } else {
             // Call filterByHabit method
             $results = $streak->filterByHabit(
@@ -58,11 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
     // -----------------------------------------------
-    // FILTER BY STATUS
+    // FILTER BY STATUS — Story 3
     // -----------------------------------------------
     } elseif ($filter == 'status') {
 
-        // Get checkbox value 1=active 0=inactive
+        // Get checkbox value
         $isActive = isset($_POST['IsActive']) ? 1 : 0;
 
         // Call filterByStatus method
@@ -70,14 +69,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $count   = $results->num_rows;
 
     // -----------------------------------------------
-    // FILTER BY MINIMUM LENGTH
+    // FILTER BY LENGTH — Story 4
     // -----------------------------------------------
     } elseif ($filter == 'length') {
 
         // Validate MinLength
-        if (empty($_POST['MinLength']) ||
-            !is_numeric($_POST['MinLength'])) {
-            $error = "Please enter a valid minimum length";
+        if (empty($_POST['MinLength'])) {
+            $error = "Please enter a minimum length";
+        } elseif (!is_numeric($_POST['MinLength'])) {
+            $error = "Minimum length must be a number";
         } else {
             // Call filterByLength method
             $results = $streak->filterByLength(
@@ -88,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -97,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body>
 
-<!-- Navigation bar -->
+<!-- Navigation -->
 <nav>
     <a href="../admin_streaks.php">📋 All Streaks</a> |
     <a href="add_streak.php">➕ Add</a> |
@@ -105,7 +106,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <a href="../../../index.html">🏠 Menu</a>
 </nav>
 
-<!-- Page heading -->
 <h1>Filter Streaks</h1>
 
 <!-- Filter Form -->
@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <br><br>
 
-    <!-- Input for Habit filter -->
+    <!-- Story 2 — Filter by Habit input -->
     <label>Habit ID:</label><br>
     <input type="number"
            name="HabitID"
@@ -136,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <br><br>
 
-    <!-- Checkbox for Status filter -->
+    <!-- Story 3 — Filter by Status checkbox -->
     <label>Active Streaks Only:</label>
     <input type="checkbox"
            name="IsActive"
@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <br><br>
 
-    <!-- Input for Length filter -->
+    <!-- Story 4 — Filter by Length input -->
     <label>Minimum Streak Length (days):</label><br>
     <input type="number"
            name="MinLength"
@@ -167,15 +167,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <br>
 <h2>Filter Results</h2>
 
-    <!-- Show count of results -->
     <?php if ($count == 0): ?>
         <div class="error">
             No streaks found matching your filter
         </div>
 
     <?php else: ?>
-        <!-- Show how many records found -->
-        <p>Found <strong><?= $count ?></strong> records</p>
+        <p>
+            Found <strong><?= $count ?></strong> records
+        </p>
 
         <table>
             <thead>
@@ -191,7 +191,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </tr>
             </thead>
             <tbody>
-                <!-- Loop through each result -->
                 <?php while ($row = $results->fetch_assoc()): ?>
                 <tr>
                     <td><?= $row['StreakID'] ?></td>
@@ -201,23 +200,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <td>
                         <?= htmlspecialchars($row['HabitName']) ?>
                     </td>
-                    <td><?= $row['CurrentStreak'] ?> days</td>
-                    <td><?= $row['LongestStreak'] ?> days</td>
                     <td>
-                        <!-- Show active or inactive -->
+                        <?= $row['CurrentStreak'] ?> days
+                    </td>
+                    <td>
+                        <?= $row['LongestStreak'] ?> days
+                    </td>
+                    <td>
                         <?= $row['IsActive']
                             ? '✅ Active'
                             : '❌ Inactive' ?>
                     </td>
                     <td><?= $row['LastUpdated'] ?></td>
                     <td>
-                        <!-- Edit link -->
                         <a class="edit-link"
                            href="edit_streak.php?id=
                            <?= $row['StreakID'] ?>">
                            Edit
                         </a> |
-                        <!-- Delete link -->
                         <a class="delete-link"
                            href="delete_streak.php?id=
                            <?= $row['StreakID'] ?>">
