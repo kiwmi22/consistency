@@ -1,7 +1,7 @@
 <?php
 /**
- * Login Page - Authentication
- * Validates user credentials and creates session
+ * Login Page - Secure Authentication
+ * Uses bcrypt password hashing (password_verify)
  * Author: Pratik Tamang
  */
 
@@ -17,30 +17,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $database = new Database();
         $db = $database->getConnection();
         
-        // Query to verify credentials
-        // Note: In production, passwords should be hashed with password_hash()
-        $query = "SELECT UserID, Username, IsAdmin FROM tblUsers 
-                  WHERE Username = :username AND PasswordHash = :password AND IsActive = 1";
+        // Get user by username only (don't compare password in SQL)
+        $query = "SELECT UserID, Username, PasswordHash, IsAdmin FROM tblUsers 
+                  WHERE Username = :username AND IsActive = 1";
         $stmt = $db->prepare($query);
         
         $username = htmlspecialchars(strip_tags($_POST['username']));
-        $password = htmlspecialchars(strip_tags($_POST['password']));
+        $password = $_POST['password']; // Don't sanitize - password_verify handles it
         
         $stmt->bindParam(":username", $username);
-        $stmt->bindParam(":password", $password);
         $stmt->execute();
         
         if ($stmt->rowCount() > 0) {
-            // Valid credentials - create session
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            $_SESSION['user_id'] = $user['UserID'];
-            $_SESSION['username'] = $user['Username'];
-            $_SESSION['is_admin'] = $user['IsAdmin'];
             
-            // Redirect to main menu
-            header("Location: ../index.html");
-            exit();
+            // Verify password against stored hash
+            if (password_verify($password, $user['PasswordHash'])) {
+                // Password correct - create session
+                $_SESSION['user_id'] = $user['UserID'];
+                $_SESSION['username'] = $user['Username'];
+                $_SESSION['is_admin'] = $user['IsAdmin'];
+                
+                // Redirect to main menu
+                header("Location: ../index.html");
+                exit();
+            } else {
+                // Wrong password - generic message for security
+                $message = "<p style='color: red;'>Invalid username or password.</p>";
+            }
         } else {
+            // User not found - same generic message (prevents username enumeration)
             $message = "<p style='color: red;'>Invalid username or password.</p>";
         }
     } else {
@@ -89,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </form>
         
         <p style="text-align: center; margin-top: 20px;">
-            <small>Demo credentials: admin / admin123</small>
+            <small>Demo: admin / admin123</small>
         </p>
     </div>
 </body>
